@@ -1,0 +1,49 @@
+name: Build HELIOS Entropy
+on:
+  push:
+    branches: [helios-entropy-v3]
+    paths: ['*.js', '*.cjs', '*.py', 'index.html', '*.bat', '*.command', 'README.md', '.github/workflows/entropy-build.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: helios-entropy-v3-build
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.ref == 'refs/heads/helios-entropy-v3'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: helios-entropy-v3
+      - name: Validate game and build packages
+        run: |
+          node qa.cjs
+          python3 -m py_compile server.py legacy_server.py
+          python3 build.py
+      - name: Attach complete tested source and game
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: helios-entropy-bundle
+          path: |
+            dist/
+            *.js
+            *.cjs
+            *.py
+            *.html
+            *.bat
+            *.command
+            README.md
+            QA_RESULTS.json
+          retention-days: 7
+      - name: Publish downloadable builds in this branch only
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add dist QA_RESULTS.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Build tested HELIOS Entropy download package [skip ci]'
+            git push origin HEAD:helios-entropy-v3
+          fi
