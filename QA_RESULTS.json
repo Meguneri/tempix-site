@@ -1,0 +1,15 @@
+{
+  "version": "3.0.0-entropy",
+  "maps": 5000,
+  "minrooms": 13,
+  "maxrooms": 19,
+  "rooms": 85,
+  "bosses": 5,
+  "modules": 36,
+  "weapons": 6,
+  "saveRestore": true,
+  "revive": true,
+  "technicalProgression": true,
+  "naturalPlaythrough": false,
+  "physicalPhones": false
+}
