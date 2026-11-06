@@ -1,0 +1,10 @@
+{
+  "HELIOS_ENTROPY_PC.exe": {
+    "bytes": 5815808,
+    "sha256": "271f6134e1bbfedff8bbcec73aab810442de31c82795d6eb4a4a70351aacc372"
+  },
+  "dist/HELIOS_ENTROPY_PC_Windows.zip": {
+    "bytes": 2497428,
+    "sha256": "3571240b500cc04aa4a994ad30e64e6c68b12ebcaeb84a9ce353e651c916f4f9"
+  }
+}
