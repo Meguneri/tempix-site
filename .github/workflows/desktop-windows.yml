@@ -1,0 +1,64 @@
+name: Build HELIOS ENTROPY Desktop Windows
+on:
+  push:
+    branches: [helios-entropy-windows]
+    paths:
+      - desktop_pc.go
+      - dist/HELIOS_ENTROPY_OFFLINE.html
+      - .github/workflows/desktop-windows.yml
+      - START_COOP_HOST.bat
+      - JOIN_COOP.bat
+      - START_SERVER_ONLY.bat
+      - README_WINDOWS.md
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows-pc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+      - name: Compile Windows x64 standalone launcher
+        run: |
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o HELIOS_ENTROPY_PC.exe desktop_pc.go
+          file HELIOS_ENTROPY_PC.exe
+      - name: Package PC game
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          import hashlib, json
+          root = Path('.')
+          dist = root / 'dist'
+          dist.mkdir(exist_ok=True)
+          filenames = ['HELIOS_ENTROPY_PC.exe','START_COOP_HOST.bat','JOIN_COOP.bat','START_SERVER_ONLY.bat','README_WINDOWS.md','dist/HELIOS_ENTROPY_OFFLINE.html']
+          out = dist / 'HELIOS_ENTROPY_PC_Windows.zip'
+          with ZipFile(out, 'w', ZIP_DEFLATED, compresslevel=9) as z:
+              for fn in filenames:
+                  name = 'HELIOS_ENTROPY_PC/' + fn.removeprefix('dist/')
+                  z.write(root / fn, arcname=name)
+          with ZipFile(out) as z:
+              assert z.testzip() is None
+              assert 'HELIOS_ENTROPY_PC/HELIOS_ENTROPY_PC.exe' in z.namelist()
+          report = {fn:{'bytes':(root / fn).stat().st_size,'sha256':hashlib.sha256((root / fn).read_bytes()).hexdigest()} for fn in ['HELIOS_ENTROPY_PC.exe','dist/HELIOS_ENTROPY_PC_Windows.zip']}
+          (dist/'PC_BUILD.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(report,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HELIOS_ENTROPY_PC_Windows
+          path: dist/HELIOS_ENTROPY_PC_Windows.zip
+          retention-days: 30
+      - name: Publish download to current isolated branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f dist/HELIOS_ENTROPY_PC_Windows.zip dist/PC_BUILD.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Build Windows PC package [skip ci]"
+          git push origin HEAD:helios-entropy-windows
